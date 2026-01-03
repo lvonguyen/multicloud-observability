@@ -1,0 +1,131 @@
+# OpenTelemetry Collector Configuration
+# Multi-Cloud Observability Platform
+
+receivers:
+  # AWS CloudWatch Metrics
+  awscloudwatch:
+    region: ${AWS_REGION}
+    poll_interval: 60s
+    metrics:
+      - namespace: AWS/EC2
+        metric_name: CPUUtilization
+        period: 60s
+        stat: Average
+        dimensions:
+          - InstanceId
+      - namespace: AWS/Lambda
+        metric_name: Duration
+        period: 60s
+        stat: p99
+        dimensions:
+          - FunctionName
+      - namespace: AWS/RDS
+        metric_name: DatabaseConnections
+        period: 60s
+        stat: Sum
+
+  # Azure Monitor Metrics
+  azuremonitor:
+    subscription_id: ${AZURE_SUBSCRIPTION_ID}
+    resource_groups:
+      - production-rg
+      - staging-rg
+    metrics:
+      - resource_type: Microsoft.Compute/virtualMachines
+        metric_names:
+          - Percentage CPU
+          - Network In Total
+          - Network Out Total
+      - resource_type: Microsoft.Web/sites
+        metric_names:
+          - Requests
+          - AverageResponseTime
+          - Http5xx
+
+  # GCP Cloud Monitoring
+  googlecloudmonitoring:
+    project: ${GCP_PROJECT_ID}
+    metrics:
+      - type: compute.googleapis.com/instance/cpu/utilization
+      - type: compute.googleapis.com/instance/network/received_bytes_count
+      - type: cloudfunctions.googleapis.com/function/execution_times
+
+  # OTLP for application telemetry
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Batch processor for efficiency
+  batch:
+    timeout: 1s
+    send_batch_size: 1000
+
+  # Add cloud metadata to all metrics
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${ENVIRONMENT}
+        action: insert
+      - key: service.namespace
+        value: multicloud-observability
+        action: insert
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1000
+    spike_limit_mib: 200
+
+exporters:
+  # Prometheus for metrics
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: multicloud
+    const_labels:
+      collector: otel
+
+  # Tempo for traces
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Loki for logs
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    labels:
+      resource:
+        cloud: ""
+        service.name: ""
+        service.namespace: ""
+
+  # Debug logging
+  logging:
+    loglevel: info
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    metrics:
+      receivers: [awscloudwatch, azuremonitor, googlecloudmonitoring, otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, logging]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlp/tempo]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [loki]
+
