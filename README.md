@@ -273,7 +273,7 @@ MIT License - See [LICENSE](LICENSE)
 ## Author
 
 **Liem Vo-Nguyen**
-- LinkedIn: [linkedin.com/in/liemvn](https://linkedin.com/in/liemvn)
+- LinkedIn: [linkedin.com/in/liemvonguyen](https://linkedin.com/in/liemvonguyen)
 - Email: liem@vonguyen.io
 
 ---
