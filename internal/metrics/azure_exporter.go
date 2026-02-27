@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -14,8 +15,9 @@ type AzureExporterConfig struct {
 
 // AzureMonitorExporter collects metrics from Azure Monitor
 type AzureMonitorExporter struct {
-	config AzureExporterConfig
-	done   chan struct{}
+	config   AzureExporterConfig
+	done     chan struct{}
+	stopOnce sync.Once
 }
 
 // NewAzureMonitorExporter creates a new Azure Monitor exporter
@@ -45,9 +47,9 @@ func (e *AzureMonitorExporter) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop halts metric collection
+// Stop halts metric collection. Safe to call multiple times.
 func (e *AzureMonitorExporter) Stop() error {
-	close(e.done)
+	e.stopOnce.Do(func() { close(e.done) })
 	return nil
 }
 

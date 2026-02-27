@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/lvonguyen/multicloud-observability/internal/otel"
@@ -16,8 +17,9 @@ type GCPExporterConfig struct {
 
 // GCPMonitoringExporter collects metrics from GCP Cloud Monitoring
 type GCPMonitoringExporter struct {
-	config GCPExporterConfig
-	done   chan struct{}
+	config   GCPExporterConfig
+	done     chan struct{}
+	stopOnce sync.Once
 }
 
 // NewGCPMonitoringExporter creates a new GCP Cloud Monitoring exporter
@@ -47,9 +49,9 @@ func (e *GCPMonitoringExporter) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop halts metric collection
+// Stop halts metric collection. Safe to call multiple times.
 func (e *GCPMonitoringExporter) Stop() error {
-	close(e.done)
+	e.stopOnce.Do(func() { close(e.done) })
 	return nil
 }
 

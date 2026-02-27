@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,6 +27,7 @@ type AWSCloudWatchExporter struct {
 	client     *cloudwatch.Client
 	namespaces []otel.AWSNamespaceSettings
 	done       chan struct{}
+	stopOnce   sync.Once
 }
 
 // NewAWSCloudWatchExporter creates a new AWS CloudWatch exporter
@@ -83,9 +85,9 @@ func (e *AWSCloudWatchExporter) Start(ctx context.Context) error {
 	return nil
 }
 
-// Stop halts metric collection
+// Stop halts metric collection. Safe to call multiple times.
 func (e *AWSCloudWatchExporter) Stop() error {
-	close(e.done)
+	e.stopOnce.Do(func() { close(e.done) })
 	return nil
 }
 
@@ -148,13 +150,18 @@ func (e *AWSCloudWatchExporter) getMetricData(ctx context.Context, ns otel.AWSNa
 
 	var metrics []Metric
 	for _, mr := range result.MetricDataResults {
-		for i, ts := range mr.Timestamps {
+		// Guard against mismatched Timestamps/Values lengths from partial CloudWatch responses
+		n := len(mr.Timestamps)
+		if len(mr.Values) < n {
+			n = len(mr.Values)
+		}
+		for i := 0; i < n; i++ {
 			m := Metric{
 				Name:      ns.MetricName,
 				Cloud:     "aws",
 				Namespace: ns.Namespace,
 				Value:     mr.Values[i],
-				Timestamp: ts,
+				Timestamp: mr.Timestamps[i],
 				Statistic: ns.Stat,
 				Labels: map[string]string{
 					"cloud":     "aws",

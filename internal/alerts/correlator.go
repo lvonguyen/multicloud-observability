@@ -49,6 +49,7 @@ type Correlator struct {
 	rules        []CorrelationRule
 	router       AlertRouter
 	done         chan struct{}
+	stopOnce     sync.Once
 }
 
 // CorrelationRule defines how alerts are correlated
@@ -82,9 +83,9 @@ func NewCorrelator(router AlertRouter) *Correlator {
 	return c
 }
 
-// Stop signals the cleanup goroutine to exit.
+// Stop signals the cleanup goroutine to exit. Safe to call multiple times.
 func (c *Correlator) Stop() {
-	close(c.done)
+	c.stopOnce.Do(func() { close(c.done) })
 }
 
 // defaultCorrelationRules returns standard correlation rules
@@ -154,7 +155,12 @@ func (c *Correlator) ProcessAlert(ctx context.Context, alert Alert) error {
 			groupKey := c.generateGroupKey(alert, rule)
 
 			if group, exists := c.groups[groupKey]; exists {
-				return c.addToGroup(ctx, group.ID, alert)
+				// Only join if alert falls within the rule's time window
+				if alert.StartsAt.Before(group.StartsAt.Add(rule.TimeWindow)) {
+					return c.addToGroup(ctx, group.ID, alert)
+				}
+				// Outside time window — skip this rule, try others or isolate
+				continue
 			}
 
 			// Create new group
