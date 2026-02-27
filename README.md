@@ -236,9 +236,7 @@ receivers:
 | Errors | 5xx Count | Failed Requests | Error Rate |
 | Saturation | CPU/Memory | Resource Usage | Utilization |
 
-## Interview Talking Points
-
-This project demonstrates:
+## Use Cases
 
 1. **Observability Engineering**
    - OpenTelemetry adoption and custom collector development
@@ -278,5 +276,5 @@ MIT License - See [LICENSE](LICENSE)
 
 ---
 
-*Multi-Cloud Observability Platform demonstrates SRE and platform engineering expertise for Staff/Principal roles.*
+*Multi-Cloud Observability Platform — production-grade SRE and platform engineering for multi-cloud environments.*
 
