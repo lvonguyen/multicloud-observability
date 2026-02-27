@@ -12,13 +12,13 @@ import (
 // Alert represents an incoming alert from any source
 type Alert struct {
 	ID          string            `json:"id"`
-	Source      string            `json:"source"`      // prometheus, cloudwatch, azure-monitor
-	Severity    string            `json:"severity"`    // critical, high, medium, low
+	Source      string            `json:"source"`   // prometheus, cloudwatch, azure-monitor
+	Severity    string            `json:"severity"` // critical, high, medium, low
 	Title       string            `json:"title"`
 	Description string            `json:"description"`
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
-	Status      string            `json:"status"`    // firing, resolved
+	Status      string            `json:"status"` // firing, resolved
 	StartsAt    time.Time         `json:"starts_at"`
 	EndsAt      *time.Time        `json:"ends_at,omitempty"`
 
@@ -48,15 +48,16 @@ type Correlator struct {
 	alertToGroup map[string]string
 	rules        []CorrelationRule
 	router       AlertRouter
+	done         chan struct{}
 }
 
 // CorrelationRule defines how alerts are correlated
 type CorrelationRule struct {
 	Name        string
 	Description string
-	MatchLabels []string          // Labels that must match
-	TimeWindow  time.Duration     // Alerts within this window are grouped
-	Priority    int               // Higher priority rules are checked first
+	MatchLabels []string           // Labels that must match
+	TimeWindow  time.Duration      // Alerts within this window are grouped
+	Priority    int                // Higher priority rules are checked first
 	GroupTitle  func(Alert) string // Function to generate group title
 }
 
@@ -72,12 +73,18 @@ func NewCorrelator(router AlertRouter) *Correlator {
 		alertToGroup: make(map[string]string),
 		router:       router,
 		rules:        defaultCorrelationRules(),
+		done:         make(chan struct{}),
 	}
 
 	// Start cleanup goroutine
 	go c.cleanupLoop()
 
 	return c
+}
+
+// Stop signals the cleanup goroutine to exit.
+func (c *Correlator) Stop() {
+	close(c.done)
 }
 
 // defaultCorrelationRules returns standard correlation rules
@@ -95,14 +102,21 @@ func defaultCorrelationRules() []CorrelationRule {
 		},
 		{
 			Name:        "same-host",
-			Description: "Group alerts for the same host/instance",
-			MatchLabels: []string{"instance", "host"},
+			Description: "Group alerts for the same host",
+			MatchLabels: []string{"host"},
 			TimeWindow:  5 * time.Minute,
 			Priority:    5,
 			GroupTitle: func(a Alert) string {
-				if host, ok := a.Labels["host"]; ok {
-					return fmt.Sprintf("Host: %s", host)
-				}
+				return fmt.Sprintf("Host: %s", a.Labels["host"])
+			},
+		},
+		{
+			Name:        "same-instance",
+			Description: "Group alerts for the same instance",
+			MatchLabels: []string{"instance"},
+			TimeWindow:  5 * time.Minute,
+			Priority:    4,
+			GroupTitle: func(a Alert) string {
 				return fmt.Sprintf("Instance: %s", a.Labels["instance"])
 			},
 		},
@@ -176,7 +190,8 @@ func (c *Correlator) generateGroupKey(alert Alert, rule CorrelationRule) string 
 	return fmt.Sprintf("%x", hash[:8])
 }
 
-// matchesRule checks if an alert matches a correlation rule
+// matchesRule checks if an alert matches a correlation rule.
+// All labels in rule.MatchLabels must be present on the alert.
 func (c *Correlator) matchesRule(alert Alert, rule CorrelationRule) bool {
 	matchCount := 0
 	for _, label := range rule.MatchLabels {
@@ -184,8 +199,7 @@ func (c *Correlator) matchesRule(alert Alert, rule CorrelationRule) bool {
 			matchCount++
 		}
 	}
-	// Require at least one matching label
-	return matchCount > 0
+	return matchCount == len(rule.MatchLabels)
 }
 
 // createGroup creates a new correlation group
@@ -253,8 +267,13 @@ func (c *Correlator) cleanupLoop() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		c.cleanup()
+	for {
+		select {
+		case <-c.done:
+			return
+		case <-ticker.C:
+			c.cleanup()
+		}
 	}
 }
 
@@ -293,4 +312,3 @@ func severityPriority(severity string) int {
 		return 0
 	}
 }
-

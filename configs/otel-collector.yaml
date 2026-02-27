@@ -54,9 +54,9 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 127.0.0.1:4317
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 127.0.0.1:4318
 
 processors:
   # Batch processor for efficiency
@@ -92,7 +92,7 @@ exporters:
   otlp/tempo:
     endpoint: tempo:4317
     tls:
-      insecure: true
+      insecure_skip_verify: true
 
   # Loki for logs
   loki:

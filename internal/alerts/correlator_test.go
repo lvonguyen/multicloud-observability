@@ -204,8 +204,8 @@ func TestMatchesRule_OneMatchingLabel(t *testing.T) {
 		MatchLabels: []string{"service", "environment"},
 	}
 	a := makeAlert("a1", "prometheus", "low", map[string]string{"service": "api"})
-	if !c.matchesRule(a, rule) {
-		t.Error("alert with one matching label should match rule (threshold is >0)")
+	if c.matchesRule(a, rule) {
+		t.Error("alert with only one matching label should NOT match a rule requiring both labels")
 	}
 }
 
@@ -709,19 +709,18 @@ func TestCorrelationRule_DefaultGroupTitle_SameHost_UsesHost(t *testing.T) {
 	}
 }
 
-func TestCorrelationRule_DefaultGroupTitle_SameHost_FallsBackToInstance(t *testing.T) {
+func TestCorrelationRule_DefaultGroupTitle_SameInstance(t *testing.T) {
 	rules := defaultCorrelationRules()
-	var sameHost CorrelationRule
+	var sameInstance CorrelationRule
 	for _, r := range rules {
-		if r.Name == "same-host" {
-			sameHost = r
+		if r.Name == "same-instance" {
+			sameInstance = r
 			break
 		}
 	}
 
-	// No "host" label — should fall back to "instance".
 	a := makeAlert("a1", "prometheus", "high", map[string]string{"instance": "10.0.0.1:9090"})
-	title := sameHost.GroupTitle(a)
+	title := sameInstance.GroupTitle(a)
 	expected := "Instance: 10.0.0.1:9090"
 	if title != expected {
 		t.Errorf("GroupTitle = %q, want %q", title, expected)
@@ -730,8 +729,8 @@ func TestCorrelationRule_DefaultGroupTitle_SameHost_FallsBackToInstance(t *testi
 
 func TestDefaultCorrelationRules_Count(t *testing.T) {
 	rules := defaultCorrelationRules()
-	if len(rules) != 3 {
-		t.Errorf("expected 3 default rules, got %d", len(rules))
+	if len(rules) != 4 {
+		t.Errorf("expected 4 default rules, got %d", len(rules))
 	}
 }
 

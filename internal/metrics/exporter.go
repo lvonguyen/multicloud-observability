@@ -3,6 +3,7 @@ package metrics
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -29,9 +30,9 @@ type Metric struct {
 	// Identification
 	Name      string            `json:"name"`
 	Labels    map[string]string `json:"labels"`
-	Cloud     string            `json:"cloud"`      // aws, azure, gcp
-	Namespace string            `json:"namespace"`  // Original namespace (e.g., AWS/EC2)
-	Resource  string            `json:"resource"`   // Resource identifier
+	Cloud     string            `json:"cloud"`     // aws, azure, gcp
+	Namespace string            `json:"namespace"` // Original namespace (e.g., AWS/EC2)
+	Resource  string            `json:"resource"`  // Resource identifier
 
 	// Value
 	Value     float64   `json:"value"`
@@ -65,6 +66,7 @@ type Aggregator struct {
 	exporters []CloudExporter
 	metrics   chan Metric
 	done      chan struct{}
+	stopOnce  sync.Once
 }
 
 // NewAggregator creates a new metrics aggregator
@@ -139,9 +141,11 @@ func (a *Aggregator) exposeMetrics(ctx context.Context) {
 	// This would create Prometheus gauges/counters from collected metrics
 }
 
-// Shutdown gracefully stops the aggregator
+// Shutdown gracefully stops the aggregator. Safe to call multiple times.
 func (a *Aggregator) Shutdown(ctx context.Context) error {
-	close(a.done)
+	a.stopOnce.Do(func() {
+		close(a.done)
+	})
 
 	for _, exp := range a.exporters {
 		if err := exp.Stop(); err != nil {
@@ -151,4 +155,3 @@ func (a *Aggregator) Shutdown(ctx context.Context) error {
 
 	return nil
 }
-
