@@ -28,23 +28,35 @@ A production-ready observability platform that aggregates metrics, traces, and l
 ## Architecture
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontFamily': 'Georgia'}}}%%
 flowchart TD
-    subgraph Cloud Sources
+    subgraph CloudSources["Cloud Sources"]
         CW[CloudWatch\nMetrics]
         AM[Azure Monitor]
         CM[Cloud Monitoring\nGCP]
     end
 
-    subgraph OTel Agents
+    subgraph OTelAgents["OTel Agents"]
         A1[OTel Agent\nper service]
         A2[OTel Agent\nper service]
     end
 
-    subgraph Backends
+    subgraph Backends["Observability Backends"]
         PROM[Prometheus\nMetrics]
         TEMPO[Tempo\nTraces]
         LOKI[Loki\nLogs]
+    end
+
+    subgraph AlertCorrelation["Alert Correlation Engine"]
+        style AlertCorrelation fill:#ef4444,stroke:#991b1b,color:#fff
+        AC1["Multi-Signal Correlator"]
+        AC2["Dedup & Grouping"]
+        AC3["Severity Classifier"]
+    end
+
+    subgraph AlertOutputs["Alert Outputs"]
         PD[PagerDuty\nAlerts]
+        OG[OpsGenie\nAlerts]
     end
 
     CW --> A1
@@ -57,7 +69,12 @@ flowchart TD
     GW --> PROM
     GW --> TEMPO
     GW --> LOKI
-    GW --> PD
+    GW --> AC1
+
+    AC1 --> AC2 --> AC3
+
+    AC3 --> PD
+    AC3 --> OG
 
     PROM --> G[Grafana\nDashboards]
     TEMPO --> G
