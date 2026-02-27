@@ -59,4 +59,3 @@ func (e *GCPMonitoringExporter) CollectMetrics(ctx context.Context) ([]Metric, e
 	// cloud.google.com/go/monitoring/apiv3/v2
 	return []Metric{}, nil
 }
-

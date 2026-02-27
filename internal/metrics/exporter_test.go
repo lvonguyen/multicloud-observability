@@ -53,14 +53,14 @@ func TestMetric_ZeroValue(t *testing.T) {
 func TestMetric_Fields(t *testing.T) {
 	ts := time.Date(2024, 1, 15, 12, 0, 0, 0, time.UTC)
 	m := Metric{
-		Name:      "CPUUtilization",
-		Cloud:     "aws",
-		Namespace: "AWS/EC2",
-		Value:     75.5,
-		Timestamp: ts,
-		Unit:      "Percent",
-		Statistic: "Average",
-		Labels:    map[string]string{"region": "us-east-1"},
+		Name:       "CPUUtilization",
+		Cloud:      "aws",
+		Namespace:  "AWS/EC2",
+		Value:      75.5,
+		Timestamp:  ts,
+		Unit:       "Percent",
+		Statistic:  "Average",
+		Labels:     map[string]string{"region": "us-east-1"},
 		Dimensions: map[string]string{"InstanceId": "i-abc123"},
 	}
 

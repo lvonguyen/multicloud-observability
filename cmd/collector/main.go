@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -24,9 +23,9 @@ type Config struct {
 	LogLevel   string
 
 	// Cloud credentials
-	AWSRegion          string
-	AzureSubscription  string
-	GCPProject         string
+	AWSRegion         string
+	AzureSubscription string
+	GCPProject        string
 
 	// Export targets
 	PrometheusEndpoint string
@@ -171,16 +170,3 @@ func parseFlags() *Config {
 
 	return cfg
 }
-
-// printBanner prints the startup banner
-func printBanner() {
-	banner := `
-╔══════════════════════════════════════════════════════════════════╗
-║           Multi-Cloud Observability Collector                    ║
-║                                                                  ║
-║  Unified metrics, traces, and logs across AWS, Azure, and GCP   ║
-╚══════════════════════════════════════════════════════════════════╝
-`
-	fmt.Println(banner)
-}
-

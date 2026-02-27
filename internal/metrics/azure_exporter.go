@@ -57,4 +57,3 @@ func (e *AzureMonitorExporter) CollectMetrics(ctx context.Context) ([]Metric, er
 	// github.com/Azure/azure-sdk-for-go/sdk/monitor/azquery
 	return []Metric{}, nil
 }
-

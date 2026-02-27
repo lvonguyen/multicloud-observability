@@ -20,7 +20,6 @@ type AWSExporterConfig struct {
 	Namespaces   []otel.AWSNamespaceSettings
 }
 
-
 // AWSCloudWatchExporter collects metrics from AWS CloudWatch
 type AWSCloudWatchExporter struct {
 	config     AWSExporterConfig
@@ -169,4 +168,3 @@ func (e *AWSCloudWatchExporter) getMetricData(ctx context.Context, ns otel.AWSNa
 
 	return metrics, nil
 }
-

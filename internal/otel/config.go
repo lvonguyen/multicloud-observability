@@ -43,9 +43,9 @@ type AWSNamespaceSettings struct {
 
 // AzureReceiverConfig holds Azure Monitor receiver settings
 type AzureReceiverConfig struct {
-	SubscriptionID string                  `yaml:"subscription_id"`
-	ResourceGroups []string                `yaml:"resource_groups"`
-	Metrics        []AzureMetricSettings   `yaml:"metrics"`
+	SubscriptionID string                `yaml:"subscription_id"`
+	ResourceGroups []string              `yaml:"resource_groups"`
+	Metrics        []AzureMetricSettings `yaml:"metrics"`
 }
 
 // AzureMetricSettings defines metrics to collect from Azure
@@ -222,4 +222,3 @@ func DefaultConfig() *Config {
 		},
 	}
 }
-
