@@ -27,47 +27,41 @@ A production-ready observability platform that aggregates metrics, traces, and l
 
 ## Architecture
 
-```
-                         Multi-Cloud Observability Platform
- 
-    AWS                      Azure                     GCP
-     |                         |                         |
-     v                         v                         v
-+----------+             +----------+             +----------+
-|CloudWatch|             |  Azure   |             |  Cloud   |
-| Metrics  |             | Monitor  |             |Monitoring|
-+----+-----+             +----+-----+             +----+-----+
-     |                         |                         |
-     +------------+------------+------------+------------+
-                  |                         |
-                  v                         v
-         +----------------+        +----------------+
-         |   OTel Agent   |        |   OTel Agent   |
-         |  (per service) |        |  (per service) |
-         +-------+--------+        +-------+--------+
-                 |                         |
-                 +------------+------------+
-                              |
-                              v
-                 +------------------------+
-                 |  OpenTelemetry Gateway |
-                 |      Collector         |
-                 +------------------------+
-                    |         |         |
-         +----------+    +----+----+    +----------+
-         v               v         v               v
-    +---------+    +---------+  +------+    +----------+
-    |Prometheus|   |  Tempo  |  | Loki |    | PagerDuty|
-    | Metrics |    | Traces  |  | Logs |    |  Alerts  |
-    +---------+    +---------+  +------+    +----------+
-         |              |           |
-         +--------------+-----------+
-                        |
-                        v
-                 +-------------+
-                 |   Grafana   |
-                 | Dashboards  |
-                 +-------------+
+```mermaid
+flowchart TD
+    subgraph Cloud Sources
+        CW[CloudWatch\nMetrics]
+        AM[Azure Monitor]
+        CM[Cloud Monitoring\nGCP]
+    end
+
+    subgraph OTel Agents
+        A1[OTel Agent\nper service]
+        A2[OTel Agent\nper service]
+    end
+
+    subgraph Backends
+        PROM[Prometheus\nMetrics]
+        TEMPO[Tempo\nTraces]
+        LOKI[Loki\nLogs]
+        PD[PagerDuty\nAlerts]
+    end
+
+    CW --> A1
+    AM --> A1
+    CM --> A2
+
+    A1 --> GW[OTel Gateway\nCollector]
+    A2 --> GW
+
+    GW --> PROM
+    GW --> TEMPO
+    GW --> LOKI
+    GW --> PD
+
+    PROM --> G[Grafana\nDashboards]
+    TEMPO --> G
+    LOKI --> G
 ```
 
 ## Features
