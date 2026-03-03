@@ -1,1 +1,21 @@
 .DS_Store
+bin/
+
+# Dev profile configs (symlinked from shared/standards)
+.agent/
+.claude/commands
+.claude/docs
+.claude/examples
+.claude/hooks
+.claude/rules
+.claude/scripts
+.claude/skills
+.claude/settings.local.json
+.continue/
+.cursorrules
+.github/copilot-instructions.md
+CLAUDE.md
+docs/STANDARDS.md
+
+# Stale backups
+*.bck.yml
